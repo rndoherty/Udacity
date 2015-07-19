@@ -31,7 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * A placeholder fragment containing a simple view.
+ * Encapsulates fetching the forecast and displaying it as a {@link ListView} layout.
  */
 public class ForecastFragment extends Fragment {
 
@@ -41,52 +41,60 @@ public class ForecastFragment extends Fragment {
     }
 
     @Override
-    public void onCreate(Bundle savedInstanceState){
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Add this line in order for this fragment to handle menu events.
         setHasOptionsMenu(true);
     }
 
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater){
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.forecastfragment, menu);
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item){
-
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-        if (id==R.id.action_refresh){
+        if (id == R.id.action_refresh) {
             FetchWeatherTask weatherTask = new FetchWeatherTask();
             weatherTask.execute("94043");
             return true;
         }
         return super.onOptionsItemSelected(item);
-
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+
+        // Create some dummy data for the ListView.  Here's a sample weekly forecast
+        String[] data = {
+                "Mon 6/23 - Sunny - 31/17",
+                "Tue 6/24 - Foggy - 21/8",
+                "Wed 6/25 - Cloudy - 22/17",
+                "Thurs 6/26 - Rainy - 18/11",
+                "Fri 6/27 - Foggy - 21/10",
+                "Sat 6/28 - TRAPPED IN WEATHERSTATION - 23/18",
+                "Sun 6/29 - Sunny - 20/7"
+        };
+        List<String> weekForecast = new ArrayList<String>(Arrays.asList(data));
+
+        // Now that we have some dummy forecast data, create an ArrayAdapter.
+        // The ArrayAdapter will take data from a source (like our dummy forecast) and
+        // use it to populate the ListView it's attached to.
+        mForecastAdapter =
+                new ArrayAdapter<String>(
+                        getActivity(), // The current context (this activity)
+                        R.layout.list_item_forecast, // The name of the layout ID.
+                        R.id.list_item_forecast_textview, // The ID of the textview to populate.
+                        weekForecast);
+
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
-        String[] forecastArray = {
-                "Today - Sunny - 88/63",
-                "Tomorrow - Foggy - 70/40",
-                "Weds - Cloudy - 72/63",
-                "Thurs - Asteroids - 75/65",
-                "Fri - Heavy Rain - 65/56",
-                "Sat - HELP TRAPPED IN WEATHERSTATION - 60/51",
-                "Sun - Sunny - 80/68"
-        };
-
-        List<String> weekForecast = new ArrayList<String>(Arrays.asList(forecastArray));
-
-        ArrayAdapter<String> mForecastAdapter = new ArrayAdapter<String>(
-                getActivity(),
-                R.layout.list_item_forecast,
-                R.id.list_item_forecast_textview,
-                weekForecast);
-
+        // Get a reference to the ListView, and attach this adapter to it.
         ListView listView = (ListView) rootView.findViewById(R.id.listview_forecast);
         listView.setAdapter(mForecastAdapter);
 
@@ -96,7 +104,6 @@ public class ForecastFragment extends Fragment {
     public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
 
         private final String LOG_TAG = FetchWeatherTask.class.getSimpleName();
-
 
         /* The date/time conversion code is going to be moved outside the asynctask later,
          * so for convenience we're breaking it out into its own method now.
@@ -119,7 +126,6 @@ public class ForecastFragment extends Fragment {
             String highLowStr = roundedHigh + "/" + roundedLow;
             return highLowStr;
         }
-
 
         /**
          * Take the String representing the complete forecast in JSON Format and
@@ -197,14 +203,13 @@ public class ForecastFragment extends Fragment {
             return resultStrs;
 
         }
-
         @Override
-        protected String[] doInBackground(String... params){
+        protected String[] doInBackground(String... params) {
 
-            if (params.length==0){
+            // If there's no zip code, there's nothing to look up.  Verify size of params.
+            if (params.length == 0) {
                 return null;
             }
-
 
             // These two need to be declared outside the try/catch
             // so that they can be closed in the finally block.
@@ -222,10 +227,11 @@ public class ForecastFragment extends Fragment {
                 // Construct the URL for the OpenWeatherMap query
                 // Possible parameters are avaiable at OWM's forecast API page, at
                 // http://openweathermap.org/API#forecast
-                final String FORECAST_BASE_URL = "http://api.openweathermap.org/data/2.5/forecast/daily?";
+                final String FORECAST_BASE_URL =
+                        "http://api.openweathermap.org/data/2.5/forecast/daily?";
                 final String QUERY_PARAM = "q";
                 final String FORMAT_PARAM = "mode";
-                final String UNITS_PARAM ="units";
+                final String UNITS_PARAM = "units";
                 final String DAYS_PARAM = "cnt";
 
                 Uri builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
@@ -236,8 +242,6 @@ public class ForecastFragment extends Fragment {
                         .build();
 
                 URL url = new URL(builtUri.toString());
-
-                //URL url = new URL("http://api.openweathermap.org/data/2.5/forecast/daily?q=94043&mode=json&units=metric&cnt=7");
 
                 Log.v(LOG_TAG, "Built URI " + builtUri.toString());
 
@@ -269,14 +273,13 @@ public class ForecastFragment extends Fragment {
                 }
                 forecastJsonStr = buffer.toString();
 
-                Log.v(LOG_TAG, "Forecast JSON String: " + forecastJsonStr);
-
+                Log.v(LOG_TAG, "Forecast string: " + forecastJsonStr);
             } catch (IOException e) {
                 Log.e(LOG_TAG, "Error ", e);
                 // If the code didn't successfully get the weather data, there's no point in attemping
                 // to parse it.
                 return null;
-            } finally{
+            } finally {
                 if (urlConnection != null) {
                     urlConnection.disconnect();
                 }
@@ -288,11 +291,15 @@ public class ForecastFragment extends Fragment {
                     }
                 }
             }
+
             try {
-                return getWeatherDataFromJson(forecastJsonStr,numDays);
+                return getWeatherDataFromJson(forecastJsonStr, numDays);
             } catch (JSONException e) {
-                Log.e(LOG_TAG,e.getMessage(),e);
+                Log.e(LOG_TAG, e.getMessage(), e);
+                e.printStackTrace();
             }
+
+            // This will only happen if there was an error getting or parsing the forecast.
             return null;
         }
 
@@ -301,11 +308,10 @@ public class ForecastFragment extends Fragment {
             if (result != null) {
                 mForecastAdapter.clear();
                 for(String dayForecastStr : result) {
-                    mForecastAdapter.add(dayForecastStr);
+                    mForecastAdapter.addAll(dayForecastStr);
                 }
                 // New data is back from the server.  Hooray!
             }
         }
-
     }
 }
